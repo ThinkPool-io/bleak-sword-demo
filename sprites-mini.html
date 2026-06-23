@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BLEAK SWORD — 16px duelists (RotMG / Terraria scale)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0c0b0a; color:#cabfa8; font-family:"Courier New",ui-monospace,monospace;
+    padding:28px 18px 60px;}
+  h1{font-size:24px; letter-spacing:5px; text-align:center; color:#d8cdb0;
+     text-shadow:0 0 16px rgba(180,140,80,.4);}
+  .sub{text-align:center; color:#7a715c; font-size:12px; letter-spacing:2px;
+     margin:6px 0 26px; text-transform:uppercase;}
+  .grid{display:grid; grid-template-columns:repeat(5,1fr); gap:14px;
+    max-width:1180px; margin:0 auto;}
+  @media(max-width:980px){ .grid{grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:620px){ .grid{grid-template-columns:repeat(2,1fr);} }
+  .card{background:linear-gradient(#1a1812,#0e0d0a); border:1px solid #2a261f;
+    border-radius:6px; padding:14px 8px 12px; text-align:center;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.6);}
+  .card canvas{image-rendering:pixelated; display:block; margin:0 auto;
+    background:radial-gradient(ellipse at 50% 44%, #3a382f 0%, #15140f 72%);
+    border-radius:4px;}
+  .num{color:#8a0303; font-weight:bold; font-size:13px;}
+  .name{color:#d8cdb0; font-size:14px; letter-spacing:.5px; margin-top:8px;}
+  .tag{color:#6a6253; font-size:10.5px; margin-top:3px; min-height:30px; line-height:1.3;}
+  .stage{max-width:1180px; margin:32px auto 0;
+     background:linear-gradient(#3b3a33,#211f18 70%,#0c0b08);
+     border:1px solid #2a261f; border-radius:6px; padding:22px 10px 16px;}
+  .stage h2{font-size:12px; letter-spacing:3px; color:#8a7f68; text-align:center;
+     margin-bottom:14px; text-transform:uppercase;}
+  .stagerow{display:flex; justify-content:center; align-items:flex-end; gap:18px; flex-wrap:wrap;}
+  .stagerow canvas{image-rendering:pixelated; display:block;}
+  .ground{height:1px; background:linear-gradient(90deg,transparent,#6e6552,transparent);
+     max-width:980px; margin:4px auto 0;}
+  .foot{text-align:center; color:#5a5346; font-size:11px; letter-spacing:2px;
+     margin-top:26px; text-transform:uppercase;}
+</style>
+</head>
+<body>
+<h1>BLEAK SWORD · 16PX</h1>
+<div class="sub">10 duelists at RotMG / Terraria scale · fewer pixels, bolder read · pick one</div>
+<div class="grid" id="grid"></div>
+
+<div class="stage">
+  <h2>— at stage scale —</h2>
+  <div class="stagerow" id="stagerow"></div>
+  <div class="ground"></div>
+</div>
+<div class="foot">bloodborne-coded · bleak palette · 16px chunk</div>
+
+<script>
+const PAL = {
+  '.':null,'K':'#0b0b0c','D':'#1b1812','G':'#332c22','T':'#4b4534','H':'#6d6450',
+  'W':'#cfc8b4','S':'#8f969c','E':'#e4ebef','b':'#6e0a0a','R':'#c01616',
+  'A':'#6e521c','F':'#e8ad36','P':'#3a2540',
+};
+const N=16;
+function buf(){ return new Array(N*N).fill('.'); }
+function P(b,x,y,c){ if(x<0||x>=N||y<0||y>=N||c==='.'||c==null) return; b[y*N+x]=c; }
+function Pm(b,x,y,c){ P(b,x,y,c); P(b,N-1-x,y,c); }
+function R(b,x,y,w,h,c){ for(let j=0;j<h;j++)for(let i=0;i<w;i++)P(b,x+i,y+j,c); }
+function Rm(b,x,y,w,h,c){ for(let j=0;j<h;j++)for(let i=0;i<w;i++)Pm(b,x+i,y+j,c); }
+function outline(b,c){
+  const o=b.slice();
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    if(b[y*N+x]!=='.') continue;
+    if((x>0&&b[y*N+x-1]!=='.')||(x<N-1&&b[y*N+x+1]!=='.')||
+       (y>0&&b[(y-1)*N+x]!=='.')||(y<N-1&&b[(y+1)*N+x]!=='.')) o[y*N+x]=c;
+  }
+  return o;
+}
+
+// ---- 10 designs (16x16, centred on x=7/8) ----
+function d1(){ const b=buf();                         // Tricorn Hunter
+  Rm(b,6,1,2,1,'G'); Rm(b,4,2,4,1,'D');               // crown + wide brim
+  Rm(b,6,3,2,2,'K'); Pm(b,6,3,'R');                   // face, red eyes
+  Rm(b,5,5,3,5,'D'); Rm(b,5,6,1,4,'K');               // coat
+  R(b,6,10,2,4,'K'); R(b,8,10,2,4,'K');               // legs
+  for(let i=0;i<6;i++) P(b,10+i,8-i,'S'); P(b,9,8,'A'); // saber
+  return outline(b,'K'); }
+function d2(){ const b=buf();                         // Hollow
+  Rm(b,6,2,2,3,'H'); Pm(b,6,3,'R'); Pm(b,6,4,'K');    // skull, hollow eye, jaw
+  Rm(b,5,5,3,5,'D'); Pm(b,5,9,'K');                   // ragged shroud
+  R(b,6,10,1,4,'D'); R(b,9,10,1,4,'D');               // spindly legs
+  for(let i=0;i<6;i++) P(b,10+i,8-Math.floor(i*0.5),'S'); P(b,9,8,'A'); // thin blade
+  return outline(b,'K'); }
+function d3(){ const b=buf();                         // Cowled
+  Rm(b,5,1,3,4,'G'); Rm(b,6,2,2,3,'D'); Pm(b,6,3,'R');// deep cowl
+  Rm(b,5,5,3,5,'K');
+  R(b,6,10,2,4,'D'); R(b,8,10,2,4,'D');
+  for(let i=0;i<6;i++) P(b,10+i,8-i,'S'); P(b,15,3,'E'); // curved-tip blade
+  return outline(b,'K'); }
+function d4(){ const b=buf();                         // Plague Doctor
+  Rm(b,6,1,2,1,'G'); Rm(b,5,2,3,1,'D');               // brim hat
+  Rm(b,6,3,2,2,'T'); Pm(b,6,3,'R'); P(b,8,4,'T');P(b,9,5,'D'); // mask + beak
+  Rm(b,5,5,3,5,'K');
+  R(b,6,10,2,4,'K'); R(b,8,10,2,4,'K');
+  for(let i=0;i<4;i++) P(b,11+i,7+i,'S'); P(b,11,7,'A'); // dagger
+  return outline(b,'K'); }
+function d5(){ const b=buf();                         // Horned Beast
+  Pm(b,5,1,'H'); Pm(b,4,2,'H');                       // horns
+  Rm(b,6,2,2,3,'G'); Pm(b,6,3,'R');
+  Rm(b,4,5,4,5,'D'); Pm(b,5,6,'G');                   // bulky torso
+  R(b,5,10,2,4,'G'); R(b,9,10,2,4,'G');
+  P(b,11,7,'W');P(b,12,7,'W');P(b,12,8,'W');P(b,12,6,'W'); // claw
+  return outline(b,'K'); }
+function d6(){ const b=buf();                         // Revenant Knight
+  Rm(b,6,2,2,3,'S'); Pm(b,6,3,'R'); R(b,6,4,4,1,'K'); // helm + visor
+  Rm(b,5,5,3,5,'H'); Pm(b,5,6,'D'); Pm(b,6,8,'D');    // plate
+  R(b,6,10,2,4,'S'); R(b,8,10,2,4,'S');
+  R(b,11,3,1,7,'S'); P(b,11,3,'E'); R(b,10,9,3,1,'A'); // broadsword
+  return outline(b,'K'); }
+function d7(){ const b=buf();                         // Lantern Wraith
+  Rm(b,6,1,2,4,'P'); Pm(b,6,3,'F');                   // tall hood, ember eye
+  Rm(b,5,5,3,6,'K'); Rm(b,5,7,3,3,'P');
+  Rm(b,5,11,3,3,'K');                                 // robe (no legs)
+  P(b,3,7,'A'); R(b,2,8,2,2,'F'); P(b,2,8,'E');       // lantern
+  for(let i=0;i<5;i++) P(b,11+i,8-i,'S');             // blade
+  return outline(b,'K'); }
+function d8(){ const b=buf();                         // Executioner
+  Rm(b,5,2,3,2,'D');                                  // broad hood
+  Rm(b,6,3,2,2,'G'); Pm(b,6,4,'R');
+  Rm(b,4,5,4,5,'D'); Pm(b,6,5,'R'); P(b,7,6,'b'); P(b,8,6,'b'); // blood-soaked
+  R(b,5,10,2,4,'K'); R(b,9,10,2,4,'K');
+  R(b,11,5,3,3,'S'); R(b,12,8,1,3,'A');               // cleaver
+  return outline(b,'K'); }
+function d9(){ const b=buf();                         // Crow Horror
+  Rm(b,6,2,2,2,'K'); Pm(b,6,2,'R'); P(b,8,3,'F');     // crow head + beak
+  Pm(b,4,5,'D'); Pm(b,3,6,'D');                       // tucked wings
+  Rm(b,5,5,3,5,'D');
+  R(b,6,10,2,4,'K'); R(b,8,10,2,4,'K');
+  R(b,11,4,1,7,'A'); P(b,11,4,'S');P(b,10,4,'S');P(b,9,5,'S'); // scythe
+  return outline(b,'K'); }
+function d10(){ const b=buf();                        // Bleak Blade (minimal)
+  Rm(b,6,1,2,1,'D'); Rm(b,5,2,3,1,'D');               // low brim
+  Rm(b,6,3,2,2,'D'); Pm(b,6,3,'R');                   // shadow face
+  Rm(b,6,5,2,6,'K'); Rm(b,5,6,1,4,'D');               // slim cloak
+  R(b,6,11,1,3,'D'); R(b,9,11,1,3,'D');
+  for(let i=0;i<6;i++) P(b,10+i,9-Math.floor(i*0.4),'S'); // low thin blade
+  return outline(b,'K'); }
+
+const D=[
+  ['Tricorn Hunter','wide hat, coat, saber',d1],
+  ['Hollow','bone skull, thin blade',d2],
+  ['Cowled','deep hood, curved tip',d3],
+  ['Plague Doctor','beak mask, dagger',d4],
+  ['Horned Beast','horns, claw, bulky',d5],
+  ['Revenant Knight','helm, broadsword',d6],
+  ['Lantern Wraith','hood, lantern, blade',d7],
+  ['Executioner','broad hood, cleaver, gore',d8],
+  ['Crow Horror','beak, wings, scythe',d9],
+  ['Bleak Blade','minimal silhouette',d10],
+];
+
+function render(b,scale){
+  const c=document.createElement('canvas'); c.width=N*scale; c.height=N*scale;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=false;
+  for(let yy=0;yy<N;yy++)for(let xx=0;xx<N;xx++){
+    const ch=b[yy*N+xx]; if(ch==='.'||!PAL[ch]) continue;
+    x.fillStyle=PAL[ch]; x.fillRect(xx*scale,yy*scale,scale,scale);
+  }
+  return c;
+}
+const grid=document.getElementById('grid'), stagerow=document.getElementById('stagerow');
+D.forEach((d,i)=>{
+  const b=d[2]();
+  const card=document.createElement('div'); card.className='card';
+  card.appendChild(render(b,11));
+  card.insertAdjacentHTML('beforeend',
+    `<div class="name"><span class="num">${i+1}.</span> ${d[0]}</div><div class="tag">${d[1]}</div>`);
+  grid.appendChild(card);
+  stagerow.appendChild(render(b,5));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BLEAK SWORD — Hunter × Hollow mixes</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0c0b0a; color:#cabfa8; font-family:"Courier New",ui-monospace,monospace;
+    padding:28px 18px 60px;}
+  h1{font-size:24px; letter-spacing:5px; text-align:center; color:#d8cdb0;
+     text-shadow:0 0 16px rgba(180,140,80,.4);}
+  .sub{text-align:center; color:#7a715c; font-size:12px; letter-spacing:2px;
+     margin:6px 0 26px; text-transform:uppercase;}
+  .grid{display:grid; grid-template-columns:repeat(5,1fr); gap:14px;
+    max-width:1180px; margin:0 auto;}
+  @media(max-width:980px){ .grid{grid-template-columns:repeat(3,1fr);} }
+  .card{background:linear-gradient(#1a1812,#0e0d0a); border:1px solid #2a261f;
+    border-radius:6px; padding:14px 8px 12px; text-align:center;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.6);}
+  .card canvas{image-rendering:pixelated; display:block; margin:0 auto;
+    background:radial-gradient(ellipse at 50% 42%, #3a382f 0%, #15140f 70%);
+    border-radius:4px;}
+  .num{color:#8a0303; font-weight:bold; font-size:13px;}
+  .name{color:#d8cdb0; font-size:14px; letter-spacing:.5px; margin-top:8px;}
+  .tag{color:#6a6253; font-size:10.5px; margin-top:3px; min-height:40px; line-height:1.3;}
+  .stage{max-width:1180px; margin:32px auto 0;
+     background:linear-gradient(#3b3a33,#211f18 70%,#0c0b08);
+     border:1px solid #2a261f; border-radius:6px; padding:22px 10px 16px;}
+  .stage h2{font-size:12px; letter-spacing:3px; color:#8a7f68; text-align:center;
+     margin-bottom:14px; text-transform:uppercase;}
+  .stagerow{display:flex; justify-content:center; align-items:flex-end; gap:26px; flex-wrap:wrap;}
+  .stagerow canvas{image-rendering:pixelated; display:block;}
+  .ground{height:1px; background:linear-gradient(90deg,transparent,#6e6552,transparent);
+     max-width:900px; margin:4px auto 0;}
+  .ref{max-width:1180px; margin:20px auto 0; text-align:center; color:#6a6253;
+     font-size:11px; letter-spacing:1px;}
+  .ref b{color:#a39c88;}
+  .foot{text-align:center; color:#5a5346; font-size:11px; letter-spacing:2px;
+     margin-top:26px; text-transform:uppercase;}
+</style>
+</head>
+<body>
+<h1>HUNTER × HOLLOW</h1>
+<div class="sub">5 mixes of #1 Cloaked Hunter + #5 Hollow Swordsman · 32px · pick one</div>
+<div class="grid" id="grid"></div>
+
+<div class="stage">
+  <h2>— at stage scale —</h2>
+  <div class="stagerow" id="stagerow"></div>
+  <div class="ground"></div>
+</div>
+<div class="ref">parents: <b>#1</b> tricorn · long coat · thick saber &nbsp;|&nbsp; <b>#5</b> gaunt skull · ragged shroud · thin rapier</div>
+<div class="foot">bloodborne-coded · bleak palette · terraria-chunk pixels</div>
+
+<script>
+const PAL = {
+  '.':null,'K':'#0b0b0c','D':'#1b1812','G':'#322c22','T':'#4b4534','H':'#6d6450',
+  'W':'#cfc8b4','S':'#8f969c','E':'#e4ebef','b':'#6e0a0a','R':'#c01616',
+  'A':'#6e521c','F':'#e8ad36','P':'#3a2540',
+};
+const N=32;
+function buf(){ return new Array(N*N).fill('.'); }
+function P(b,x,y,c){ if(x<0||x>=N||y<0||y>=N||c==='.'||c==null) return; b[y*N+x]=c; }
+function Pm(b,x,y,c){ P(b,x,y,c); P(b,N-1-x,y,c); }
+function R(b,x,y,w,h,c){ for(let j=0;j<h;j++)for(let i=0;i<w;i++)P(b,x+i,y+j,c); }
+function Rm(b,x,y,w,h,c){ for(let j=0;j<h;j++)for(let i=0;i<w;i++)Pm(b,x+i,y+j,c); }
+function outline(b,c){
+  const o=b.slice();
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    if(b[y*N+x]!=='.') continue;
+    if((x>0&&b[y*N+x-1]!=='.')||(x<N-1&&b[y*N+x+1]!=='.')||
+       (y>0&&b[(y-1)*N+x]!=='.')||(y<N-1&&b[(y+1)*N+x]!=='.')) o[y*N+x]=c;
+  }
+  return o;
+}
+function saber(b){ for(let i=0;i<13;i++){P(b,21+i,18-i,'S');P(b,21+i,19-i,'E');} R(b,20,18,2,2,'A'); }
+function rapier(b){ for(let i=0;i<15;i++) P(b,20+i,16-Math.floor(i*0.62),'S'); P(b,19,16,'A');P(b,19,15,'A'); }
+function curvedSaber(b){ for(let i=0;i<11;i++) P(b,21+i,17-i,'S'); P(b,31,7,'E');P(b,30,7,'S');P(b,29,8,'S'); R(b,20,16,2,2,'A'); }
+
+// ---- 5 mixes ----
+// Mix A — Hollow Hunter: full tricorn + bone skull face + long coat + thick saber
+function mA(){ const b=buf();
+  Rm(b,9,2,3,1,'G'); Rm(b,7,4,9,1,'G'); Rm(b,6,5,10,2,'D'); R(b,3,6,6,1,'G'); R(b,23,6,6,1,'G');
+  Rm(b,12,7,4,4,'H'); Rm(b,13,8,3,3,'G'); Pm(b,13,9,'R'); Pm(b,13,10,'K');   // skull, hollow red eye, dark jaw
+  Rm(b,11,11,5,7,'D'); Rm(b,10,13,1,5,'K'); Rm(b,11,18,5,6,'K'); Rm(b,9,19,2,5,'D');
+  R(b,12,24,3,6,'K'); R(b,17,24,3,6,'K'); R(b,11,30,4,1,'D'); R(b,17,30,4,1,'D');
+  saber(b); P(b,15,15,'b');
+  return outline(b,'K');
+}
+// Mix B — Shrouded Hunter: narrow tricorn + skull + ragged shroud (tatters) + saber
+function mB(){ const b=buf();
+  Rm(b,10,3,3,1,'G'); R(b,5,5,6,1,'G'); R(b,21,5,6,1,'G'); Rm(b,8,5,8,1,'D');
+  Rm(b,12,6,4,4,'H'); Rm(b,13,7,3,3,'G'); Pm(b,13,8,'R'); Pm(b,13,9,'K');
+  Rm(b,11,10,5,8,'D'); Rm(b,10,12,1,6,'K');
+  Rm(b,12,18,4,6,'K'); Pm(b,11,18,'K'); Pm(b,12,20,'D'); Pm(b,10,17,'K'); Pm(b,11,22,'D'); // tatters
+  R(b,12,24,3,6,'D'); R(b,17,24,3,6,'D'); R(b,12,30,3,1,'K'); R(b,17,30,3,1,'K');
+  saber(b); P(b,16,16,'b');
+  return outline(b,'K');
+}
+// Mix C — Gaunt Duelist: small brim hat + gaunt skull + slim coat + thin rapier
+function mC(){ const b=buf();
+  Rm(b,12,2,4,1,'G'); Rm(b,11,3,5,1,'D'); R(b,8,4,5,1,'G'); R(b,19,4,5,1,'G'); Rm(b,10,4,6,1,'D');
+  Rm(b,12,6,4,4,'H'); Rm(b,13,7,3,3,'G'); Pm(b,14,8,'R'); Pm(b,14,9,'K');
+  Rm(b,12,10,4,8,'D'); Rm(b,11,12,1,6,'K'); Rm(b,12,18,4,6,'K');
+  R(b,13,24,2,6,'G'); R(b,17,24,2,6,'G'); R(b,12,30,3,1,'D'); R(b,17,30,3,1,'D');
+  rapier(b);
+  return outline(b,'K');
+}
+// Mix D — Cowled Revenant: hood/brim hybrid + glowing eyes + coat w/ shroud-cape tatters + curved saber
+function mD(){ const b=buf();
+  Rm(b,11,3,5,3,'G'); Rm(b,12,4,4,3,'D'); R(b,8,6,4,1,'G'); R(b,20,6,4,1,'G'); Rm(b,10,5,6,1,'G');
+  Rm(b,12,7,4,3,'D'); Pm(b,13,8,'R'); Rm(b,13,10,3,1,'H');                      // shadow face, red eyes, bone jaw
+  Rm(b,9,9,1,11,'b'); Pm(b,8,18,'b'); Pm(b,9,21,'b');                            // shroud-cape behind
+  Rm(b,11,10,5,8,'K'); Rm(b,10,12,1,6,'D'); Rm(b,11,18,5,6,'K'); Pm(b,10,19,'D');
+  R(b,12,24,3,6,'K'); R(b,17,24,3,6,'K'); R(b,11,30,4,1,'D'); R(b,17,30,4,1,'D');
+  curvedSaber(b); P(b,15,15,'b');
+  return outline(b,'K');
+}
+// Mix E — Bleak Blade: minimal low-brim + hollow eyes + slim shroud-coat + thin blade (most on-brand)
+function mE(){ const b=buf();
+  Rm(b,12,3,4,2,'D'); Rm(b,11,5,5,1,'G'); R(b,7,5,6,1,'D'); R(b,19,5,6,1,'D');  // low wide brim
+  Rm(b,12,6,4,4,'D'); Pm(b,13,8,'R');                                            // shadow face, red eye
+  Rm(b,11,10,5,9,'K'); Rm(b,10,12,1,7,'D');
+  Rm(b,12,19,4,5,'K'); Pm(b,11,19,'K'); Pm(b,12,21,'D');                         // slim tatters
+  R(b,13,24,2,6,'D'); R(b,17,24,2,6,'D'); R(b,13,30,2,1,'K'); R(b,17,30,2,1,'K');
+  for(let i=0;i<14;i++) P(b,20+i,17-Math.floor(i*0.5),'S'); P(b,19,17,'A');      // thin blade, low angle
+  return outline(b,'K');
+}
+
+const MIX=[
+  ['Hollow Hunter','full tricorn + coat + thick saber, but a bone skull with one hollow eye',mA],
+  ['Shrouded Hunter','narrow tricorn over a skull; the clean coat replaced by a ragged tattered shroud',mB],
+  ['Gaunt Duelist','small brim, gaunt skull, slim coat — fences with the Hollow\'s thin rapier',mC],
+  ['Cowled Revenant','hood-meets-tricorn, red eyes + bone jaw, shroud-cape behind, curved saber',mD],
+  ['Bleak Blade','most minimal blend — low brim, hollow eyes, slim shroud-coat, low thin blade',mE],
+];
+
+function render(b,scale){
+  const c=document.createElement('canvas'); c.width=N*scale; c.height=N*scale;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=false;
+  for(let yy=0;yy<N;yy++)for(let xx=0;xx<N;xx++){
+    const ch=b[yy*N+xx]; if(ch==='.'||!PAL[ch]) continue;
+    x.fillStyle=PAL[ch]; x.fillRect(xx*scale,yy*scale,scale,scale);
+  }
+  return c;
+}
+const grid=document.getElementById('grid'), stagerow=document.getElementById('stagerow');
+MIX.forEach((d,i)=>{
+  const b=d[2]();
+  const card=document.createElement('div'); card.className='card';
+  card.appendChild(render(b,7));
+  card.insertAdjacentHTML('beforeend',
+    `<div class="name"><span class="num">${i+1}.</span> ${d[0]}</div><div class="tag">${d[1]}</div>`);
+  grid.appendChild(card);
+  stagerow.appendChild(render(b,4));
+});
+</script>
+</body>
+</html>
