@@ -17,7 +17,7 @@
 </head>
 <body>
 <div id="wrap"><canvas id="c"></canvas></div>
-<div id="hint">arrows = walk · double-tap arrow = dash (i-frames) · J = slash · K = parry (tap) / guard (hold)</div>
+<div id="hint">arrows walk · double-tap = dash · J slash (×2 combo) · L heavy · K parry (tap) / guard (hold)</div>
 <script>
 (()=>{
 "use strict";
@@ -35,6 +35,29 @@ const easeOut=t=>1-(1-t)*(1-t);
 const easeIn=t=>t*t;
 const TAU=Math.PI*2;
 let T=0;
+
+// ---------- audio (WebAudio synth sfx) ----------
+let AC=null;
+function ac(){ if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}
+  if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function tone(f,d,type,vol,slide){const c=ac();if(!c)return;const t=c.currentTime;
+  const o=c.createOscillator(),g=c.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t);
+  if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(1,slide),t+d);
+  g.gain.setValueAtTime(vol||0.12,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d);}
+function nburst(d,vol){const c=ac();if(!c)return;const t=c.currentTime;
+  const len=Math.floor(c.sampleRate*d),b=c.createBuffer(1,len,c.sampleRate),dd=b.getChannelData(0);
+  for(let i=0;i<len;i++)dd[i]=(Math.random()*2-1)*(1-i/len);
+  const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(vol||0.18,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+d);s.connect(g);g.connect(c.destination);s.start(t);s.stop(t+d);}
+function sfxSwing(h){nburst(h?0.16:0.1,0.08);tone(h?260:430,0.1,'triangle',0.05,h?120:210);}
+function sfxHit(h){tone(h?80:110,0.18,'square',0.2,40);nburst(0.08,0.11);}
+function sfxHurt(){tone(70,0.22,'sawtooth',0.18,45);nburst(0.12,0.15);}
+function sfxDeflect(){tone(1300,0.12,'square',0.16,2300);tone(900,0.1,'square',0.09,1800);}
+function sfxBlock(){tone(300,0.1,'square',0.11,180);nburst(0.06,0.07);}
+function sfxPerilous(){tone(150,0.55,'sawtooth',0.11,95);}
+function sfxStagger(){tone(200,0.3,'square',0.14,520);}
+function sfxVisceral(){tone(60,0.45,'sawtooth',0.24,30);nburst(0.3,0.18);}
 
 // ---------- pixel sprite system (16x16) ----------
 const PAL={'.':null,'K':'#0b0b0c','D':'#1b1812','G':'#332c22','T':'#4b4534','H':'#6d6450',
@@ -127,7 +150,7 @@ const ATK={
 // ---------- entities ----------
 const player={fx:-1.5,fy:0.3,hp:5,maxHp:5,posture:0,maxPost:100,
   state:'idle',t:0,dur:0,faceR:true,anim:0,moving:false,ghosts:[],_prevRel:0,
-  dashT:0,dashVx:0,dashVy:0,dashCD:0,iframe:0,atkHit:false,
+  dashT:0,dashVx:0,dashVy:0,dashCD:0,iframe:0,atkHit:false,atkType:'light',combo:0,queued:false,
   parryDownT:-1,parryHeld:false,guardBreak:0,rally:0,rallyT:0,flash:0};
 const boss={fx:1.5,fy:-0.3,hp:14,maxHp:14,posture:0,maxPost:100,
   state:'idle',t:0,dur:0,faceR:false,atk:null,struck:false,anim:0,moving:false,_prevRel:0,ghosts:[],
@@ -140,7 +163,8 @@ function setMsg(s,dur,col){msg=s;msgT=dur||0.9;msg_col=col||'#d8cdb0';}
 
 function reset(){
   Object.assign(player,{fx:-1.5,fy:0.3,hp:5,posture:0,state:'idle',t:0,anim:0,moving:false,ghosts:[],
-    dashT:0,dashCD:0,iframe:0,atkHit:false,parryDownT:-1,parryHeld:false,guardBreak:0,rally:0,rallyT:0,flash:0});
+    dashT:0,dashCD:0,iframe:0,atkHit:false,atkType:'light',combo:0,queued:false,
+    parryDownT:-1,parryHeld:false,guardBreak:0,rally:0,rallyT:0,flash:0});
   Object.assign(boss,{fx:1.5,fy:-0.3,hp:14,posture:0,state:'idle',t:0,atk:null,struck:false,anim:0,moving:false,ghosts:[],
     cool:1.2,stagger:0,flash:0,lungeX:0});
   sparks=[];blood=[];dust=[];msg=null;shake=0;hitFlash=0;redVeil=0;pushIn=0;
@@ -165,26 +189,34 @@ function tryDash(dx,dy){
   player.dashVx=dx/m*7.2; player.dashVy=dy/m*7.2;
   spawnDust(player.fx,player.fy,7);
 }
-function tryAttack(){
-  if(player.state==='attack'||player.dashT>0||player.guardBreak>0)return;
+function tryAttack(heavy){
+  if(player.dashT>0||player.guardBreak>0)return;
+  if(player.state==='attack'){ // buffer 2nd light swing (combo)
+    if(!heavy && player.combo===0 && player.t>player.dur*0.45)player.queued=true;
+    return;
+  }
   if(boss.stagger>0 && dist()<2.0){
     boss.hp-=4; boss.stagger=0; boss.state='recover'; boss.t=0; boss.dur=.7; boss.posture=0;
-    setMsg('VISCERAL',1.1,'#e4ebef'); hitFlash=.7; shake=12; pushIn=.5;
+    setMsg('VISCERAL',1.1,'#e4ebef'); hitFlash=.7; shake=12; pushIn=.5; sfxVisceral();
     spawnBlood(boss.fx,boss.fy,22);
     if(boss.hp<=0){gstate='win';setMsg('PREY SLAUGHTERED',3,'#d8cdb0');}
     return;
   }
-  player.state='attack';player.t=0;player.dur=.40;player.atkHit=false;
+  player.state='attack';player.t=0;player.atkHit=false;player.queued=false;
+  player.atkType=heavy?'heavy':'light';player.combo=0;
+  player.dur=heavy?.52:.40; sfxSwing(heavy);
 }
 addEventListener("keydown",e=>{
   const k=e.key;
   if(gstate!=='play'){ if(k===' '||k==='Enter'||k==='j'||k==='J'){gstate='play';reset();} return;}
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(k))e.preventDefault();
+  ac();
   const was=keys[k]; keys[k]=true;
   if(!was){
     const d=dirOf(k);
     if(d){ if(T-(lastTap[d[2]]||-99) < 0.26) tryDash(d[0],d[1]); lastTap[d[2]]=T; }
-    else if(k==='j'||k==='J')tryAttack();
+    else if(k==='j'||k==='J')tryAttack(false);
+    else if(k==='l'||k==='L')tryAttack(true);
     else if(k==='k'||k==='K'){player.parryDownT=T;player.parryHeld=true;}
   }
 });
@@ -221,29 +253,31 @@ function bossStrike(){
   const deflect=!a.unblock && (T-player.parryDownT)>=0 && (T-player.parryDownT)<=win;
   if(deflect){
     const perfect=(T-player.parryDownT)<=win*0.5;
-    boss.posture+=a.deflect*(perfect?1.4:1); boss.flash=.4;
+    boss.posture+=a.deflect*(perfect?1.4:1); boss.flash=.4; sfxDeflect();
     spawnSparks(player.fx,player.fy,perfect?16:10,'#fff');
     setMsg(perfect?'PERFECT DEFLECT':'DEFLECT',.6,'#e4ebef'); shake=perfect?8:6; hitFlash=perfect?.4:.3;
     if(boss.posture>=boss.maxPost)bossStaggered(); return;
   }
   if(!a.unblock && player.parryHeld){
-    player.posture+=a.toPlayer; player.flash=.3; shake=5; spawnSparks(player.fx,player.fy,6,'#9aa0a6');
+    player.posture+=a.toPlayer; player.flash=.3; shake=5; sfxBlock(); spawnSparks(player.fx,player.fy,6,'#9aa0a6');
     if(player.posture>=player.maxPost){player.guardBreak=1.2;player.posture=player.maxPost;setMsg('GUARD BROKEN',1,'#c01616');}
     return;
   }
-  player.hp-=a.hp; player.flash=.6; player.rally=a.hp*0.9; player.rallyT=2.0;
+  player.hp-=a.hp; player.flash=.6; player.rally=a.hp*0.9; player.rallyT=2.0; sfxHurt();
   player.posture+=a.toPlayer*0.4; hitFlash=.5; shake=10; redVeil=.55;
   spawnBlood(player.fx,player.fy,9);
   if(player.hp<=0){player.hp=0;gstate='dead';setMsg('YOU DIED',3,'#9c1414');}
 }
 function bossStaggered(){
   boss.stagger=2.7; boss.state='stagger'; boss.t=0; boss.posture=0; boss.atk=null;
-  setMsg('STAGGERED — strike!',1.2,'#e8ad36'); shake=7;
+  setMsg('STAGGERED — strike!',1.2,'#e8ad36'); shake=7; sfxStagger();
 }
 function playerStrike(){
-  if(dist()>1.9)return;
+  if(dist()>1.9){sfxSwing(player.atkType==='heavy');return;}
   if(boss.stagger>0)return;
-  boss.hp-=1; boss.flash=.4; boss.posture+=14; spawnBlood(boss.fx,boss.fy,6); shake=4;
+  const heavy=player.atkType==='heavy';
+  boss.hp-=heavy?2:1; boss.flash=.4; boss.posture+=heavy?26:14;
+  spawnBlood(boss.fx,boss.fy,heavy?9:6); shake=heavy?7:4; sfxHit(heavy);
   if(player.rally>0&&player.rallyT>0){player.hp=Math.min(player.maxHp,player.hp+player.rally);player.rally=0;}
   if(boss.posture>=boss.maxPost)bossStaggered();
   if(boss.hp<=0){boss.hp=0;gstate='win';setMsg('PREY SLAUGHTERED',3,'#d8cdb0');}
@@ -285,9 +319,13 @@ function update(dt){
   player.fx=clamp(player.fx,FB.x0,FB.x1); player.fy=clamp(player.fy,FB.y0,FB.y1);
   if(player.posture>0&&player.guardBreak<=0)player.posture=Math.max(0,player.posture-dt*22);
   if(player.state==='attack'){
-    player.t+=dt; const k=player.t/player.dur;
-    if(!player.atkHit && k>0.42){player.atkHit=true; playerStrike(); spawnDust(player.fx,player.fy,3);}
-    if(player.t>=player.dur)player.state='idle';
+    player.t+=dt; const hk=player.atkType==='heavy'?0.5:0.42;
+    if(!player.atkHit && player.t/player.dur>hk){player.atkHit=true; playerStrike(); spawnDust(player.fx,player.fy,3);}
+    if(player.t>=player.dur){
+      if(player.queued && player.atkType==='light' && player.combo===0){
+        player.combo=1;player.queued=false;player.t=0;player.atkHit=false;player.dur=.34;sfxSwing(false);
+      } else player.state='idle';
+    }
   }
 
   // boss
@@ -304,7 +342,7 @@ function update(dt){
         if(d>2.4)a=r<.6?ATK.thrust:ATK.light;
         else a=r<.34?ATK.light:r<.58?ATK.heavy:r<.80?ATK.thrust:ATK.unblock;
         boss.atk=a; boss.state='windup'; boss.t=0; boss.dur=a.windup; boss.struck=false;
-        if(a.unblock)setMsg('PERILOUS',a.windup,'#e4ebef');
+        if(a.unblock){setMsg('PERILOUS',a.windup,'#e4ebef');sfxPerilous();}
       }
     } else if(boss.state==='windup'){
       boss.t+=dt; if(boss.t>=boss.dur){boss.state='strike';boss.t=0;boss.dur=boss.atk.strike;boss.struck=false;}
@@ -333,8 +371,11 @@ function poseOf(ent,scale){
     const fsign=player.faceR?1:-1;
     if(player.dashT>0){lean=Math.sign(player.dashVx||fsign* -1)*scale*2.4; bob=scale*0.6;}
     else if(player.state==='attack'){const k=player.t/player.dur;
-      if(k<0.42){lean=-fsign*easeOut(k/0.42)*scale*1.4; bob=scale*0.5;}
-      else {lean=fsign*easeOut((k-0.42)/0.58)*scale*3.2; bob=scale*0.3;}}
+      if(player.atkType==='heavy'){
+        if(k<0.5){lean=-fsign*easeOut(k/0.5)*scale*1.8; bob=k*scale*1.6;}
+        else {lean=fsign*easeOut((k-0.5)/0.5)*scale*3.6; bob=-scale*0.4;}}
+      else {if(k<0.42){lean=-fsign*easeOut(k/0.42)*scale*1.4; bob=scale*0.5;}
+        else {lean=fsign*easeOut((k-0.42)/0.58)*scale*3.2; bob=scale*0.3;}}}
     else if(player.guardBreak>0){lean=-fsign*scale*2; sag=scale*2;}
     else if(player.moving){const ph=player.anim; bob=Math.abs(Math.sin(ph))*scale*0.9;
       legA=Math.sin(ph)*scale*1.5; legB=Math.sin(ph+Math.PI)*scale*1.5;}
@@ -375,6 +416,12 @@ function bladeRel(ent,baseRest){
       return{rel:lerp(a.rel1,baseRest,k),lenMul:1,glow:0};}
   } else {
     if(player.state==='attack'){const k=player.t/player.dur;
+      if(player.atkType==='heavy'){
+        const rel=k<0.5?lerp(baseRest,-2.1,easeOut(k/0.5)):lerp(-2.1,1.6,easeOut((k-0.5)/0.5));
+        return{rel,lenMul:1.1,glow:0};}
+      if(player.combo===1){ // reverse back-slash
+        const rel=k<0.35?lerp(baseRest,1.4,easeOut(k/0.35)):lerp(1.4,-0.8,easeOut((k-0.35)/0.65));
+        return{rel,lenMul:1,glow:0};}
       const rel=k<0.42?lerp(baseRest,-1.1,easeOut(k/0.42)):lerp(-1.1,1.2,easeOut((k-0.42)/0.58));
       return{rel,lenMul:1,glow:0};}
   }
@@ -527,7 +574,7 @@ function drawTitle(){
   const bl=(Math.sin(T*3)+1)/2;ctx.globalAlpha=.4+.6*bl;ctx.fillStyle='#cabfa8';
   ctx.font='12px "Courier New",monospace';ctx.fillText('PRESS  J  TO DUEL',W/2,150);ctx.globalAlpha=1;
   ctx.fillStyle='#6a6253';ctx.font='9px "Courier New",monospace';
-  ctx.fillText('ARROWS walk · DOUBLE-TAP arrow = dash · J slash · K parry/guard',W/2,H-30);
+  ctx.fillText('ARROWS walk · DOUBLE-TAP dash · J slash ×2 · L heavy · K parry/guard',W/2,H-30);
   ctx.textAlign='left';
 }
 function drawEnd(win){
